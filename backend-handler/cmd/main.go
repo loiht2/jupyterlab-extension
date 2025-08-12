@@ -1,19 +1,31 @@
 package main
 
 import (
+	switcher "backend-handler/notebook-switcher"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 // Message represents the expected JSON payload
 // Adjust fields according to the message structure from the other application.
 type Message struct {
-	Notify_gpu_needed   string `json:"Notify_gpu_needed"`
-	Notify_gpu_released string `json:"Notify_gpu_released"`
-	Pod_name            string `json:"Pod_name"`
-	Ns                  string `json:"Ns"`
+	NotifyGPUNeeded   string `json:"NotifyGPUNeeded"`
+	NotifyGPUReleased string `json:"NotifyGPUReleased"`
+	PodName           string `json:"PodName"`
+	PodNamespace      string `json:"PodNamespace"`
+}
+
+func RealName(s string) string {
+	i := strings.LastIndex(s, "-")
+	if i <= 0 { // không có '-' hoặc '-' đứng đầu
+		return s
+	}
+	return s[:i]
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -54,17 +66,38 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Process Notebook
+	NotebookName := RealName(msg.PodName)
 	response := map[string]string{}
-	// Send a response back
-	if msg.Notify_gpu_needed == "true" {
-		response = map[string]string{"status": "received", "notify_gpu_needed": msg.Notify_gpu_needed}
+
+	if msg.NotifyGPUNeeded == "true" {
+		NewNotebookPodName, err := switcher.SwitcherToGPU(NotebookName, msg.PodNamespace)
+		if err != nil {
+			log.Printf("%v", err)
+		}
+		NewNotebookName := RealName(NewNotebookPodName)
+		ns := url.PathEscape(msg.PodNamespace)
+		nb := url.PathEscape(NewNotebookName)
+		newURL := fmt.Sprintf("/notebook/%s/%s", ns, nb)
+		// Send a response back
+		response = map[string]string{"status": "received", "podNamespace": msg.PodNamespace, "newNBName": NewNotebookName, "newURL": newURL}
 		// Process the message (for now, just log it)
-		log.Printf("Received message: notify_gpu_needed=%v, ns=%v, podName=%v", msg.Notify_gpu_needed, msg.Ns, msg.Pod_name)
+		log.Printf("Received message: NotifyGPUNeeded=%v, namespace=%v, newNBName=%v, newURL=%v", msg.NotifyGPUNeeded, msg.PodNamespace, NewNotebookName, newURL)
 	}
-	if msg.Notify_gpu_released == "true" {
-		response = map[string]string{"status": "received", "notify_gpu_released": msg.Notify_gpu_released}
+
+	if msg.NotifyGPUReleased == "true" {
+		NewNotebookPodName, err := switcher.SwitcherToCPU(NotebookName, msg.PodNamespace)
+		if err != nil {
+			log.Printf("%v", err)
+		}
+		NewNotebookName := RealName(NewNotebookPodName)
+		ns := url.PathEscape(msg.PodNamespace)
+		nb := url.PathEscape(NewNotebookName)
+		newURL := fmt.Sprintf("/notebook/%s/%s", ns, nb)
+		// Send a response back
+		response = map[string]string{"status": "received", "podNamespace": msg.PodNamespace, "newNBName": NewNotebookName, "newURL": newURL}
 		// Process the message (for now, just log it)
-		log.Printf("Received message: notify_gpu_released=%v, ns=%v, podName=%v", msg.Notify_gpu_released, msg.Ns, msg.Pod_name)
+		log.Printf("Received message: NotifyGPUReleased=%v, namespace=%v, newNBName=%v, newURL=%v", msg.NotifyGPUReleased, msg.PodNamespace, NewNotebookName, newURL)
 	}
 
 	respBytes, err := json.Marshal(response)
@@ -77,6 +110,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(respBytes)
+
 }
 
 func main() {
