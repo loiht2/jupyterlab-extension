@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-switcher-config
+  namespace: default
+  labels:
+    app: switcher
+data:
+  gpuResourceKey: 'nvidia.com/gpu'
+  numGpuResource: '1'

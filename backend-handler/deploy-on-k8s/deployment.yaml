@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: switcher-deployment
+  labels:
+    app: switcher
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: switcher
+  template:
+    metadata:
+      labels:
+        app: switcher
+    spec:
+      containers:
+        - name: switcher-app
+          image: docker.io/loihoangthanh1411/go-app:1.0
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: gpu-switcher-config
+      serviceAccountName: superuser-sa
