@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: api_extension
+Version: 0.0.1
+Summary: A JupyterLab server extension to expose configuration through API
+Author: {'name': 'Thanh-Loi Hoang', 'email': 'loi.hoangthanh.24@gmail.com'}
+Dynamic: author
+Dynamic: summary

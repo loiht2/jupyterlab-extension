@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.4.0
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: loi.hoangthanh.24@gmail.com
+author_name: Thanh Loi Hoang
+has_binder: false
+has_settings: false
+kind: frontend
+labextension_name: fe_extension
+project_short_description: Front-end JupyterLab extension.
+python_name: fe_extension
+repository: ''
+test: false
+

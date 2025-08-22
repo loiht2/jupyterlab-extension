@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: switcher-deployment
+  namespace: default
   labels:
     app: switcher
 spec:
@@ -16,7 +17,7 @@ spec:
     spec:
       containers:
         - name: switcher-app
-          image: docker.io/loihoangthanh1411/go-app:1.0
+          image: docker.io/loihoangthanh1411/backend-handler-jpl:v1.0
           ports:
             - containerPort: 8080
           envFrom:

@@ -1,0 +1,40 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  labels:
+    app: jupyter-web-app
+    kustomize.component: jupyter-web-app
+  name: jupyter-web-app-jupyter-web-app
+  namespace: kubeflow
+spec:
+  gateways:
+    - kubeflow-gateway
+  hosts:
+    - '*'
+  http:
+    - match:
+        - uri:
+            prefix: /jupyter/abe/
+      name: backend-proxy
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: switcher-svc.default.svc.cluster.local
+            port:
+              number: 80
+    - headers:
+        request:
+          add:
+            x-forwarded-prefix: /jupyter
+      match:
+        - uri:
+            prefix: /jupyter/
+      name: jupyter-ui
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: jupyter-web-app-service.kubeflow.svc.cluster.local
+            port:
+              number: 80

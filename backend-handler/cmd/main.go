@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 )
 
@@ -78,7 +79,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		NewNotebookName := RealName(NewNotebookPodName)
 		ns := url.PathEscape(msg.PodNamespace)
 		nb := url.PathEscape(NewNotebookName)
-		newURL := fmt.Sprintf("/notebook/%s/%s", ns, nb)
+		newURL := fmt.Sprintf("/notebook/%s/%s/", ns, nb)
 		// Send a response back
 		response = map[string]string{"status": "received", "podNamespace": msg.PodNamespace, "newNBName": NewNotebookName, "newURL": newURL}
 		// Process the message (for now, just log it)
@@ -93,7 +94,8 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		NewNotebookName := RealName(NewNotebookPodName)
 		ns := url.PathEscape(msg.PodNamespace)
 		nb := url.PathEscape(NewNotebookName)
-		newURL := fmt.Sprintf("/notebook/%s/%s", ns, nb)
+		p := path.Join("/notebook", ns, nb)       // standardize '/'
+		newURL := strings.TrimRight(p, "/") + "/" // ensure exactly 1 '/'
 		// Send a response back
 		response = map[string]string{"status": "received", "podNamespace": msg.PodNamespace, "newNBName": NewNotebookName, "newURL": newURL}
 		// Process the message (for now, just log it)
