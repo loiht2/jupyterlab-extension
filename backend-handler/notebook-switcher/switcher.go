@@ -79,6 +79,11 @@ func SwitcherToGPU(notebookName, notebookNamespace string) (string, error) {
 		return "", fmt.Errorf("inject gpu resources: %w", err)
 	}
 
+	// Inject runtime class name
+	if err := ensureRuntimeClassName(dst, "nvidia"); err != nil {
+		return "", fmt.Errorf("inject runtime class name: %w", err)
+	}
+
 	// 5) Create the new Notebook
 	if _, err := dc.Resource(gvr).Namespace(notebookNamespace).Create(apiCtx, dst, metav1.CreateOptions{}); err != nil {
 		return "", fmt.Errorf("create notebook %q and error: %w", dstName, err)
@@ -187,8 +192,8 @@ func SwitcherToCPU(notebookName, notebookNamespace string) (string, error) {
 	}
 	fmt.Printf("New notebook pod %v is Ready now!\n", NewNotebookPodName)
 
-	// 7) Waits for 15 mintues before deleting old notebook pod
-	time.Sleep(15 * time.Second)
+	// 7) Waits for 15 seconds before deleting old notebook pod
+	// time.Sleep(15 * time.Second)
 	delCtx, delCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer delCancel()
 
@@ -357,6 +362,28 @@ func removeGPUResourcesWithKey(obj *unstructured.Unstructured, gpuKey string) er
 	}
 
 	return unstructured.SetNestedSlice(obj.Object, containers, "spec", "template", "spec", "containers")
+}
+
+func ensureRuntimeClassName(obj *unstructured.Unstructured, className string) error {
+	// Prefer controller-style: spec.template.spec
+	if _, found, _ := unstructured.NestedMap(obj.Object, "spec", "template", "spec"); found {
+		return unstructured.SetNestedField(
+			obj.Object,
+			className,
+			"spec", "template", "spec", "runtimeClassName",
+		)
+	}
+
+	// Fallback to Pod-style: spec
+	if _, found, _ := unstructured.NestedSlice(obj.Object, "spec", "containers"); found {
+		return unstructured.SetNestedField(
+			obj.Object,
+			className,
+			"spec", "runtimeClassName",
+		)
+	}
+
+	return fmt.Errorf("could not locate Pod spec: neither spec.template.spec nor spec.containers present")
 }
 
 func setNameCPU(s string) string {
